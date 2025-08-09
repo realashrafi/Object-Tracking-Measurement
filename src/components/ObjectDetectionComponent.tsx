@@ -48,22 +48,22 @@ const ObjectTrackingComponent: React.FC = () => {
     const [selectedSize, setSelectedSize] = useState<string>('');
 
     const resolutions = [
-        { label: 'Auto', width: 0, height: 0 },
+        { label: 'خودکار', width: 0, height: 0 },
         { label: '480p', width: 640, height: 480 },
         { label: '720p', width: 1280, height: 720 },
         { label: '1080p', width: 1920, height: 1080 },
     ];
 
     const sizeOptions: SizeOption[] = [
-        { label: 'Size 1', width: 15, height: 10, depth: 10 },
-        { label: 'Size 2', width: 20, height: 15, depth: 10 },
-        { label: 'Size 3', width: 20, height: 20, depth: 15 },
-        { label: 'Size 4', width: 30, height: 20, depth: 20 },
-        { label: 'Size 5', width: 35, height: 25, depth: 20 },
-        { label: 'Size 6', width: 45, height: 25, depth: 20 },
-        { label: 'Size 7', width: 40, height: 30, depth: 25 },
-        { label: 'Size 8', width: 45, height: 40, depth: 30 },
-        { label: 'Size 9', width: 55, height: 45, depth: 35 },
+        { label: 'سایز ۱', width: 15, height: 10, depth: 10 },
+        { label: 'سایز ۲', width: 20, height: 15, depth: 10 },
+        { label: 'سایز ۳', width: 20, height: 20, depth: 15 },
+        { label: 'سایز ۴', width: 30, height: 20, depth: 20 },
+        { label: 'سایز ۵', width: 35, height: 25, depth: 20 },
+        { label: 'سایز ۶', width: 45, height: 25, depth: 20 },
+        { label: 'سایز ۷', width: 40, height: 30, depth: 25 },
+        { label: 'سایز ۸', width: 45, height: 40, depth: 30 },
+        { label: 'سایز ۹', width: 55, height: 45, depth: 35 },
     ];
 
     // 获取支持的分辨率
@@ -78,41 +78,41 @@ const ObjectTrackingComponent: React.FC = () => {
                 height: capabilities.height?.max || 720,
             };
         } catch (err) {
-            console.error('Error getting supported resolutions:', err);
+            console.error('خطا در دریافت وضوح‌های پشتیبانی‌شده:', err);
             return { width: 640, height: 480 }; // 回退
         }
     };
 
-    // 在步骤2自动设置分辨率为Auto
+    // در گام دوم، رزولوشن را به صورت خودکار تنظیم کنید
     useEffect(() => {
         if (step === 2) {
-            console.log('Setting resolution to Auto on step 2');
+            console.log('تنظیم رزولوشن به خودکار در گام دوم');
             setResolution({ width: 0, height: 0 });
         }
     }, [step]);
 
-    // 加载COCO-SSD模型
+    // بارگذاری مدل COCO-SSD
     useEffect(() => {
         const loadModel = async () => {
             try {
-                console.log('Loading TensorFlow backend...');
+                console.log('در حال بارگذاری بک‌اند TensorFlow...');
                 await tf.setBackend('webgpu').catch(() => tf.setBackend('webgl'));
-                console.log(`Using ${tf.getBackend()} backend`);
-                console.log('Loading COCO-SSD model from local path...');
+                console.log(`استفاده از بک‌اند ${tf.getBackend()}`);
+                console.log('بارگذاری مدل COCO-SSD از مسیر محلی...');
                 const loadedModel = await cocoSsd.load({ modelUrl: '/models/ssdlite_mobilenet_v2/model.json' });
                 setModel(loadedModel);
                 setError(null);
-                console.log('COCO-SSD model loaded successfully from local path');
+                console.log('مدل COCO-SSD با موفقیت از مسیر محلی بارگذاری شد');
             } catch (err: unknown) {
-                const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-                setError(`Failed to load COCO-SSD model: ${errorMessage}. Check model files in /models/ssdlite_mobilenet_v2.`);
-                console.error('Model load error:', err);
+                const errorMessage = err instanceof Error ? err.message : 'خطای ناشناخته';
+                setError(`بارگذاری مدل تشخیص اشیاء با مشکل مواجه شد: ${errorMessage}. لطفاً بررسی کنید که فایل‌های مدل به‌درستی در پوشه /models/ssdlite_mobilenet_v2 قرار گرفته باشند.`);
+                console.error('خطای بارگذاری مدل:', err);
             }
         };
         loadModel();
     }, []);
 
-    // 激活摄像头
+    // فعال‌سازی دوربین
     useEffect(() => {
         if (!useCamera) return;
 
@@ -121,7 +121,7 @@ const ObjectTrackingComponent: React.FC = () => {
 
         const startCamera = async () => {
             try {
-                console.log('Starting camera with resolution:', resolution);
+                console.log('راه‌اندازی دوربین با رزولوشن:', resolution);
                 let constraints: MediaStreamConstraints = {
                     video: {
                         facingMode: isBackCamera ? 'environment' : 'user',
@@ -130,7 +130,7 @@ const ObjectTrackingComponent: React.FC = () => {
 
                 if (resolution.width === 0 && resolution.height === 0) {
                     const supportedRes = await getSupportedResolutions();
-                    console.log('Supported resolution detected:', supportedRes);
+                    console.log('رزولوشن پشتیبانی‌شده شناسایی شد:', supportedRes);
                     constraints.video = {
                         // @ts-ignore
                         ...constraints.video,
@@ -150,33 +150,33 @@ const ObjectTrackingComponent: React.FC = () => {
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     videoRef.current.onloadedmetadata = () => {
-                        console.log('Video metadata loaded, playing...');
+                        console.log('متادیتای ویدئو بارگذاری شد، در حال پخش...');
                         videoRef.current?.play().catch((err) => {
-                            setError(`Failed to play video: ${err.message}`);
-                            console.error('Video play error:', err);
+                            setError(`پخش ویدئو با مشکل مواجه شد: ${err.message}`);
+                            console.error('خطای پخش ویدئو:', err);
                         });
                     };
                     setError(null);
                 } else {
-                    setError('Video element not found.');
-                    console.error('Video element not found');
+                    setError('المان ویدئو یافت نشد.');
+                    console.error('المان ویدئو یافت نشد');
                 }
             } catch (err: unknown) {
-                const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-                console.error('Camera error:', err);
+                const errorMessage = err instanceof Error ? err.message : 'خطای ناشناخته';
+                console.error('خطای دوربین:', err);
                 if (retryCount < maxRetries) {
                     retryCount++;
-                    console.log(`Retrying camera initialization (${retryCount}/${maxRetries})...`);
+                    console.log(`تلاش مجدد برای راه‌اندازی دوربین (${retryCount}/${maxRetries})...`);
                     setTimeout(startCamera, 1000);
                 } else {
-                    setError(`Unable to access camera after ${maxRetries} attempts: ${errorMessage}. Ensure camera permissions are granted.`);
+                    setError(`دسترسی به دوربین پس از ${maxRetries} تلاش ممکن نشد: ${errorMessage}. لطفاً مطمئن شوید که دسترسی به دوربین در تنظیمات مرورگر شما فعال است.`);
                 }
             }
         };
         startCamera();
 
         return () => {
-            console.log('Cleaning up camera...');
+            console.log('پاک‌سازی دوربین...');
             if (videoRef.current?.srcObject) {
                 const stream = videoRef.current.srcObject as MediaStream;
                 stream.getTracks().forEach((track) => track.stop());
@@ -184,37 +184,37 @@ const ObjectTrackingComponent: React.FC = () => {
         };
     }, [isBackCamera, resolution, useCamera]);
 
-    // 设置Web Worker
+    // تنظیم Web Worker
     useEffect(() => {
-        console.log('Initializing Web Worker...');
+        console.log('راه‌اندازی Web Worker...');
         workerRef.current = new Worker(new URL('./detectionWorker.js', import.meta.url));
         workerRef.current.onmessage = (e) => {
-            console.log('Received message from worker:', e.data);
+            console.log('پیام دریافت‌شده از worker:', e.data);
             if (e.data.error) {
                 setError(e.data.error);
-                console.error('Worker error:', e.data.error);
+                console.error('خطای worker:', e.data.error);
             } else {
                 const filteredPredictions = e.data.predictions.filter((p: DetectedObject) => p.score > 0.5);
-                console.log('Filtered predictions:', filteredPredictions);
+                console.log('پیش‌بینی‌های فیلترشده:', filteredPredictions);
                 setDetectedObjects(filteredPredictions);
                 if (isCollecting && filteredPredictions.length > 0) {
                     setCollectedData((prev) => [...prev, ...filteredPredictions]);
-                    console.log('Collected data updated:', collectedData.length + filteredPredictions.length);
+                    console.log('داده‌های جمع‌آوری‌شده به‌روزرسانی شد:', collectedData.length + filteredPredictions.length);
                 }
             }
         };
         return () => {
-            console.log('Terminating Web Worker...');
+            console.log('خاتمه دادن به Web Worker...');
             workerRef.current?.terminate();
         };
     }, [isCollecting]);
 
-    // 渲染检测到的物体（摄像头模式）
+    // رندر اشیاء شناسایی‌شده (حالت دوربین)
     const renderDetections = (video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            setError('Failed to get canvas context.');
-            console.error('Canvas context error');
+            setError('دریافت محتوای بوم ممکن نشد.');
+            console.error('خطای محتوای بوم');
             return;
         }
 
@@ -228,7 +228,7 @@ const ObjectTrackingComponent: React.FC = () => {
         const offsetY = (canvas.height - scaledHeight) / 2;
 
         ctx.drawImage(video, offsetX, offsetY, scaledWidth, scaledHeight);
-        console.log('Raw video drawn on canvas with scaling:', { scale, offsetX, offsetY });
+        console.log('ویدئوی خام روی بوم با مقیاس‌بندی رسم شد:', { scale, offsetX, offsetY });
 
         detectedObjects.forEach((prediction) => {
             const [x, y, width, height] = prediction.bbox;
@@ -241,23 +241,23 @@ const ObjectTrackingComponent: React.FC = () => {
             ctx.lineWidth = 2;
             ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
             ctx.fillStyle = 'green';
-            ctx.font = '16px Arial';
+            ctx.font = '16px Vazirmatn, Arial';
             ctx.fillText(
                 `${prediction.class} (${(prediction.score * 100).toFixed(1)}%)`,
                 scaledX,
                 scaledY > 10 ? scaledY - 5 : 10
             );
-            console.log('Rendered detected object:', { ...prediction, scaledX, scaledY, scaledWidth, scaledHeight });
+            console.log('شیء شناسایی‌شده رندر شد:', { ...prediction, scaledX, scaledY, scaledWidth, scaledHeight });
         });
     };
 
-    // 渲染上传的图片并居中
+    // رندر تصویر آپلود شده و متمرکز کردن
     const trackAndCenterObject = (source: HTMLImageElement, canvas: HTMLCanvasElement) => {
-        console.log('Rendering uploaded image on canvas with bbox:', detectedObjects[0]?.bbox);
+        console.log('رندر تصویر آپلود شده روی بوم با bbox:', detectedObjects[0]?.bbox);
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            setError('Failed to get canvas context.');
-            console.error('Canvas context error');
+            setError('دریافت محتوای بوم ممکن نشد.');
+            console.error('خطای محتوای بوم');
             return;
         }
 
@@ -274,7 +274,7 @@ const ObjectTrackingComponent: React.FC = () => {
             const offsetY = (canvas.height - scaledHeight) / 2;
 
             ctx.drawImage(source, offsetX, offsetY, scaledWidth, scaledHeight);
-            console.log('No detected object, drawing raw image with scaling:', { scale, offsetX, offsetY });
+            console.log('هیچ شیء شناسایی نشد، رسم تصویر خام با مقیاس‌بندی:', { scale, offsetX, offsetY });
             return;
         }
 
@@ -299,18 +299,18 @@ const ObjectTrackingComponent: React.FC = () => {
         ctx.strokeRect(scaledBboxX, scaledBboxY, width * scale, height * scale);
 
         ctx.fillStyle = 'green';
-        ctx.font = '16px Arial';
+        ctx.font = '16px Vazirmatn, Arial';
         ctx.fillText(
             `${detectedObjects[0].class} (${(detectedObjects[0].score * 100).toFixed(1)}%)`,
             scaledBboxX,
             scaledBboxY > 10 ? scaledBboxY - 5 : 10
         );
-        console.log('Rendered centered object:', { ...detectedObjects[0], scaledBboxX, scaledBboxY, scale });
+        console.log('شیء متمرکز رندر شد:', { ...detectedObjects[0], scaledBboxX, scaledBboxY, scale });
     };
 
     const detectObjects = useCallback(() => {
         if (!model || !canvasRef.current || !isDetecting || !workerRef.current) {
-            console.log('Detection skipped:', {
+            console.log('تشخیص متوقف شد:', {
                 model: !!model,
                 canvas: !!canvasRef.current,
                 isDetecting,
@@ -324,15 +324,15 @@ const ObjectTrackingComponent: React.FC = () => {
 
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) {
-            setError('Failed to get canvas context.');
-            console.error('Canvas context error');
+            setError('دریافت محتوای بوم ممکن نشد.');
+            console.error('خطای محتوای بوم');
             return;
         }
 
         const source = useCamera && videoRef.current ? videoRef.current : uploadedImage;
         if (!source) {
-            setError('No video or image source available.');
-            console.error('No source available for detection');
+            setError('منبع ویدئو یا تصویر در دسترس نیست.');
+            console.error('منبع برای تشخیص در دسترس نیست');
             return;
         }
 
@@ -341,15 +341,15 @@ const ObjectTrackingComponent: React.FC = () => {
         tempCanvas.height = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
         const tempCtx = tempCanvas.getContext('2d');
         if (!tempCtx) {
-            setError('Failed to create temporary canvas context.');
-            console.error('Temp canvas context error');
+            setError('ایجاد محتوای موقت بوم ممکن نشد.');
+            console.error('خطای محتوای بوم موقت');
             return;
         }
 
         tempCtx.drawImage(source, 0, 0, tempCanvas.width, tempCanvas.height);
 
         createImageBitmap(tempCanvas).then((imageBitmap) => {
-            console.log('ImageBitmap created, sending to worker...');
+            console.log('ImageBitmap ایجاد شد، ارسال به worker...');
             workerRef.current!.postMessage({ imageBitmap }, [imageBitmap]);
             if (useCamera && videoRef.current) {
                 renderDetections(videoRef.current, canvasRef.current!);
@@ -357,20 +357,20 @@ const ObjectTrackingComponent: React.FC = () => {
                 trackAndCenterObject(uploadedImage, canvasRef.current!);
             }
         }).catch((err) => {
-            setError(`Failed to create ImageBitmap: ${err.message}`);
-            console.error('ImageBitmap error:', err);
+            setError(`ایجاد ImageBitmap ممکن نشد: ${err.message}`);
+            console.error('خطای ImageBitmap:', err);
         });
     }, [model, isDetecting, detectedObjects, useCamera, uploadedImage]);
 
     useEffect(() => {
         if (!isDetecting || (useCamera && !videoRef.current)) {
-            console.log('Detection interval skipped:', { isDetecting, hasVideo: !!videoRef.current });
+            console.log('بازه تشخیص متوقف شد:', { isDetecting, hasVideo: !!videoRef.current });
             return;
         }
-        console.log('Starting detection interval...');
+        console.log('شروع بازه تشخیص...');
         detectionIntervalRef.current = window.setInterval(detectObjects, detectionInterval);
         return () => {
-            console.log('Clearing detection interval...');
+            console.log('پاک‌سازی بازه تشخیص...');
             if (detectionIntervalRef.current) {
                 clearInterval(detectionIntervalRef.current);
                 detectionIntervalRef.current = null;
@@ -390,16 +390,16 @@ const ObjectTrackingComponent: React.FC = () => {
                 chartInstanceRef.current = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: collectedData.map((_, i) => `Angle ${i + 1}`),
+                        labels: collectedData.map((_, i) => `زاویه ${i + 1}`),
                         datasets: [
                             {
-                                label: 'Width (px)',
+                                label: 'عرض (پیکسل)',
                                 data: collectedData.map((d) => d.bbox[2]),
                                 borderColor: '#4CAF50',
                                 fill: false,
                             },
                             {
-                                label: 'Height (px)',
+                                label: 'ارتفاع (پیکسل)',
                                 data: collectedData.map((d) => d.bbox[3]),
                                 borderColor: '#2196F3',
                                 fill: false,
@@ -428,18 +428,18 @@ const ObjectTrackingComponent: React.FC = () => {
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            console.log('Uploading image...');
+            console.log('در حال آپلود تصویر...');
             const img = new Image();
             img.src = URL.createObjectURL(file);
             img.onload = () => {
-                console.log('Image loaded successfully');
+                console.log('تصویر با موفقیت بارگذاری شد');
                 setUploadedImage(img);
                 setUseCamera(false);
                 setError(null);
             };
             img.onerror = () => {
-                setError('Failed to load uploaded image.');
-                console.error('Image upload error');
+                setError('بارگذاری تصویر آپلود شده با مشکل مواجه شد.');
+                console.error('خطای آپلود تصویر');
             };
         }
     };
@@ -457,8 +457,8 @@ const ObjectTrackingComponent: React.FC = () => {
 
     const calculateDimensions = () => {
         if (collectedData.length < 3) {
-            setError('Please collect data from at least 3 different angles.');
-            console.error('Insufficient data: collectedData length is', collectedData.length);
+            setError('لطفاً داده‌ها را از حداقل ۳ زاویه مختلف جمع‌آوری کنید.');
+            console.error('داده‌های ناکافی: طول collectedData برابر است با', collectedData.length);
             return;
         }
 
@@ -471,7 +471,7 @@ const ObjectTrackingComponent: React.FC = () => {
         const realHeight = maxHeight * pixelToCmRatio;
         const depthVariation = (Math.max(...widths) - Math.min(...widths)) * pixelToCmRatio;
 
-        console.log('Calculated dimensions:', {
+        console.log('ابعاد محاسبه‌شده:', {
             maxWidth,
             maxHeight,
             pixelToCmRatio,
@@ -486,7 +486,7 @@ const ObjectTrackingComponent: React.FC = () => {
             depth: parseFloat(depthVariation.toFixed(2)),
         });
 
-        // 推荐最接近的尺寸，仅基于width和height，优先 سایز بزرگ‌تر
+        // پیشنهاد نزدیک‌ترین سایز، فقط بر اساس عرض و ارتفاع
         if (realWidth && realHeight) {
             const errorMargin = 0.05; // ضریب خطا 5%
             const closestSize = sizeOptions.find((size) => {
@@ -494,7 +494,6 @@ const ObjectTrackingComponent: React.FC = () => {
                 const heightThreshold = size.height * (1 - errorMargin);
                 return realWidth <= size.width && realHeight <= size.height && realWidth >= widthThreshold && realHeight >= heightThreshold;
             }) || sizeOptions.reduce((prev, curr) => {
-                // اگر سایزی دقیقاً پیدا نشد، سایز بزرگ‌تر را انتخاب کن
                 const prevFits = realWidth <= prev.width && realHeight <= prev.height;
                 const currFits = realWidth <= curr.width && realHeight <= curr.height;
                 if (currFits && !prevFits) return curr;
@@ -505,7 +504,7 @@ const ObjectTrackingComponent: React.FC = () => {
             }, sizeOptions[sizeOptions.length - 1]);
 
             setSelectedSize(closestSize.label);
-            console.log('Recommended size:', closestSize);
+            console.log('سایز پیشنهادی:', closestSize);
         }
 
         setError(null);
@@ -513,23 +512,23 @@ const ObjectTrackingComponent: React.FC = () => {
 
     const calibrateDistance = () => {
         if (!detectedObjects[0]) {
-            setError('No object detected for calibration.');
-            console.error('Calibration failed: no detected object');
+            setError('هیچ شیء برای کالیبراسیون شناسایی نشد.');
+            console.error('کالیبراسیون ناموفق: هیچ شیء شناسایی نشد');
             return;
         }
 
         const referenceObjectWidthPx = detectedObjects[0].bbox[2];
         const referenceObjectRealWidthCm = 2.5;
         if (referenceObjectWidthPx < 10) {
-            setError('Detected object is too small for reliable calibration.');
-            console.error('Calibration failed: referenceObjectWidthPx too small', referenceObjectWidthPx);
+            setError('شیء شناسایی‌شده برای کالیبراسیون قابل اعتماد خیلی کوچک است.');
+            console.error('کالیبراسیون ناموفق: referenceObjectWidthPx خیلی کوچک است', referenceObjectWidthPx);
             return;
         }
 
         const estimatedDistance = (referenceObjectRealWidthCm * 500) / referenceObjectWidthPx;
         const calibratedDistance = parseFloat(estimatedDistance.toFixed(2)) * 10 + 6;
 
-        console.log('Calibration result:', {
+        console.log('نتیجه کالیبراسیون:', {
             referenceObjectWidthPx,
             referenceObjectRealWidthCm,
             estimatedDistance,
@@ -576,7 +575,7 @@ const ObjectTrackingComponent: React.FC = () => {
         const selected = e.target.value;
         setSelectedSize(selected);
         const sizeData = sizeOptions.find((size) => size.label === selected);
-        console.log('Selected size:', sizeData);
+        console.log('سایز انتخاب‌شده:', sizeData);
     };
 
     const renderStep = () => {
@@ -588,11 +587,11 @@ const ObjectTrackingComponent: React.FC = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
                         className="p-6 bg-blue-50 rounded-lg text-center"
+                        style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
                     >
-                        <h2 className="text-xl font-semibold mb-4">Welcome to Object Tracking</h2>
+                        <h2 className="text-xl font-semibold mb-4">به ردیابی اشیاء خوش آمدید</h2>
                         <p className="mb-4 text-gray-700">
-                            Use your camera or upload an image to track objects and measure their dimensions. Rotate
-                            around the object to capture multiple angles for accurate measurements.
+                            از دوربین خود یا یک تصویر آپلود شده برای ردیابی اشیاء و اندازه‌گیری ابعاد آنها استفاده کنید. برای اندازه‌گیری دقیق، شیء را از زوایای مختلف اسکن کنید.
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -600,7 +599,7 @@ const ObjectTrackingComponent: React.FC = () => {
                             onClick={() => setStep(2)}
                             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium"
                         >
-                            Start Tracking
+                            شروع ردیابی
                         </motion.button>
                     </motion.div>
                 );
@@ -611,6 +610,7 @@ const ObjectTrackingComponent: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                         className="space-y-4"
+                        style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
                     >
                         <div className="relative w-full max-w-md aspect-video">
                             {useCamera ? (
@@ -643,7 +643,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                 onClick={() => setUseCamera(true)}
                                 className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${useCamera ? 'bg-blue-600' : 'bg-gray-400'}`}
                             >
-                                Use Camera
+                                استفاده از دوربین
                             </motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
@@ -651,7 +651,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                 onClick={() => fileInputRef.current?.click()}
                                 className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${!useCamera ? 'bg-blue-600' : 'bg-gray-400'}`}
                             >
-                                Upload Image
+                                آپلود تصویر
                             </motion.button>
                             <input
                                 ref={fileInputRef}
@@ -663,7 +663,7 @@ const ObjectTrackingComponent: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 gap-2">
                             <label className="text-sm font-medium text-gray-700">
-                                Resolution:
+                                وضوح تصویر:
                                 <select
                                     value={resolution.width}
                                     onChange={(e) =>
@@ -679,7 +679,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                 </select>
                             </label>
                             <label className="text-sm font-medium text-gray-700">
-                                Camera Distance (cm):
+                                فاصله دوربین (سانتی‌متر):
                                 <input
                                     type="number"
                                     value={cameraDistanceCm}
@@ -690,7 +690,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                 />
                             </label>
                             <label className="text-sm font-medium text-gray-700">
-                                Detection Interval (ms):
+                                بازه تشخیص (میلی‌ثانیه):
                                 <input
                                     type="number"
                                     value={detectionInterval}
@@ -708,7 +708,7 @@ const ObjectTrackingComponent: React.FC = () => {
                             disabled={!detectedObjects.length}
                             className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            Auto-Calibrate Distance
+                            کالیبراسیون خودکار فاصله
                         </motion.button>
                         {isCollecting && (
                             <motion.div
@@ -716,7 +716,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                 animate={{ opacity: 1 }}
                                 className="p-2 bg-yellow-100 text-yellow-700 rounded text-sm text-center"
                             >
-                                Collected angles: {collectedData.length}
+                                زوایای جمع‌آوری‌شده: {collectedData.length}
                             </motion.div>
                         )}
                         <div className="flex gap-2">
@@ -725,14 +725,14 @@ const ObjectTrackingComponent: React.FC = () => {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
                                     setIsDetecting(!isDetecting);
-                                    console.log('Toggling detection:', !isDetecting);
+                                    console.log('تغییر وضعیت تشخیص:', !isDetecting);
                                 }}
                                 disabled={!model || (!useCamera && !uploadedImage)}
                                 className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${
                                     !model || (!useCamera && !uploadedImage) ? 'bg-gray-400 cursor-not-allowed' : isDetecting ? 'bg-yellow-600' : 'bg-blue-600'
                                 }`}
                             >
-                                {isDetecting ? 'Stop Detection' : 'Start Detection'}
+                                {isDetecting ? 'توقف تشخیص' : 'شروع تشخیص'}
                             </motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
@@ -743,7 +743,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                     isDetecting && detectedObjects.length ? (isCollecting ? 'bg-orange-600' : 'bg-purple-600') : 'bg-gray-400 cursor-not-allowed'
                                 }`}
                             >
-                                {isCollecting ? 'Stop Collection' : 'Start Collection'}
+                                {isCollecting ? 'توقف جمع‌آوری' : 'شروع جمع‌آوری'}
                             </motion.button>
                             {useCamera && (
                                 <motion.button
@@ -752,7 +752,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                     onClick={() => setIsBackCamera(!isBackCamera)}
                                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium"
                                 >
-                                    Switch Camera
+                                    تغییر دوربین
                                 </motion.button>
                             )}
                         </div>
@@ -766,24 +766,25 @@ const ObjectTrackingComponent: React.FC = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
                         className="p-6 bg-green-50 rounded-lg text-center"
+                        style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
                     >
-                        <h2 className="text-xl font-semibold mb-4">Measurement Results</h2>
+                        <h2 className="text-xl font-semibold mb-4">نتایج اندازه‌گیری</h2>
                         {dimensions && (
                             <div className="mb-4">
                                 <p className="text-lg font-medium">
-                                    Width: <span className="text-green-600">{dimensions.width} cm</span>
+                                    عرض: <span className="text-green-600">{dimensions.width} cm</span>
                                 </p>
                                 <p className="text-lg font-medium">
-                                    Height: <span className="text-green-600">{dimensions.height} cm</span>
+                                    ارتفاع: <span className="text-green-600">{dimensions.height} cm</span>
                                 </p>
                                 <p className="text-lg font-medium">
-                                    Depth: <span className="text-green-600">{dimensions.depth} cm</span>
+                                    عمق: <span className="text-green-600">{dimensions.depth} cm</span>
                                 </p>
                             </div>
                         )}
                         <div className="mb-4">
                             <label className="text-sm font-medium text-gray-700">
-                                Select Size:
+                                انتخاب سایز:
                                 <select
                                     value={selectedSize}
                                     onChange={handleSizeSelection}
@@ -803,7 +804,7 @@ const ObjectTrackingComponent: React.FC = () => {
                             onClick={exportData}
                             className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium mb-4"
                         >
-                            Export Data
+                            صادر کردن داده‌ها
                         </motion.button>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -811,7 +812,7 @@ const ObjectTrackingComponent: React.FC = () => {
                             onClick={resetDetection}
                             className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium"
                         >
-                            Start Over
+                            شروع مجدد
                         </motion.button>
                     </motion.div>
                 );
@@ -821,14 +822,14 @@ const ObjectTrackingComponent: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
+        <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen" style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}>
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
             >
-                <h1 className="text-2xl font-bold mb-4 text-center">Object Tracking & Measurement</h1>
+                <h1 className="text-2xl font-bold mb-4 text-center">ردیابی و اندازه‌گیری اشیاء</h1>
                 <AnimatePresence>
                     {error && (
                         <motion.div
@@ -838,14 +839,14 @@ const ObjectTrackingComponent: React.FC = () => {
                             className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm"
                         >
                             {error}
-                            {error.includes('model') && (
-                                <p>Check if the model files are correctly placed in the /models/ssdlite_mobilenet_v2 directory.</p>
+                            {error.includes('مدل') && (
+                                <p>لطفاً بررسی کنید که فایل‌های مدل به‌درستی در پوشه /models/ssdlite_mobilenet_v2 قرار گرفته باشند.</p>
                             )}
-                            {error.includes('camera') && (
-                                <p>Ensure camera permissions are granted in your browser settings.</p>
+                            {error.includes('دوربین') && (
+                                <p>مطمئن شوید که دسترسی به دوربین در تنظیمات مرورگر شما فعال است.</p>
                             )}
                             {!detectedObjects.length && isDetecting && (
-                                <p>No object detected. Try a well-lit environment or a different image.</p>
+                                <p>هیچ شیء شناسایی نشد. از نور مناسب استفاده کنید یا تصویر دیگری امتحان کنید.</p>
                             )}
                         </motion.div>
                     )}
