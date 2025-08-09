@@ -1,13 +1,15 @@
-import React from 'react';
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import './App.css';
 import ObjectDetectionComponent from "./components/ObjectDetectionComponent";
-import './App.css'
 
 function App() {
-  return (
-    <div>
-      <ObjectDetectionComponent/>
-    </div>
-  );
+    return (
+        <Router>
+            <Routes>
+                <Route path="/" element={<ObjectDetectionComponent />} />
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;
