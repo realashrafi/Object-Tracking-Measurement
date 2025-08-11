@@ -158,7 +158,7 @@ const ObjectTrackingComponent: React.FC = () => {
                     };
                     setError(null);
                 } else {
-                    setError('المان ویدئو یافت نشد.');
+                    // setError('المان ویدئو یافت نشد.');
                     console.error('المان ویدئو یافت نشد');
                 }
             } catch (err: unknown) {
