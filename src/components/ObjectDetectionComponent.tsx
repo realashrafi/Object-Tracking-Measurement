@@ -1,8 +1,14 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+//@ts-nocheck
+import React, {useRef, useState, useEffect, useCallback} from 'react';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import * as tf from '@tensorflow/tfjs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Chart } from 'chart.js/auto';
+import {motion, AnimatePresence} from 'framer-motion';
+import {Chart} from 'chart.js/auto';
+import Loading from "./Loading";
+import {ReactComponent as Logo} from "../components/svg/zboomLogoSolo.svg";
+import {FaPause, FaPlay, FaCamera, FaUpload,FaDownload, FaUndo} from "react-icons/fa";
+import {RiCameraSwitchFill} from "react-icons/ri";
+import {MdOutlineAutoMode, MdRotate90DegreesCw} from "react-icons/md";
 
 interface DetectedObject {
     class: string;
@@ -41,35 +47,42 @@ const ObjectTrackingComponent: React.FC = () => {
     const [useCamera, setUseCamera] = useState<boolean>(true);
     const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
     const [step, setStep] = useState<number>(1);
-    const [resolution, setResolution] = useState<{ width: number; height: number }>({ width: 1280, height: 720 });
+    const [resolution, setResolution] = useState<{ width: number; height: number }>({width: 1280, height: 720});
     const [detectionInterval, setDetectionInterval] = useState<number>(300);
     const detectionIntervalRef = useRef<number | null>(null);
     const workerRef = useRef<Worker | null>(null);
     const [selectedSize, setSelectedSize] = useState<string>('');
-
+    const [loading, setLoading] = useState(true)
     const resolutions = [
-        { label: 'خودکار', width: 0, height: 0 },
-        { label: '480p', width: 640, height: 480 },
-        { label: '720p', width: 1280, height: 720 },
-        { label: '1080p', width: 1920, height: 1080 },
+        {label: 'خودکار', width: 0, height: 0},
+        {label: '480p', width: 640, height: 480},
+        {label: '720p', width: 1280, height: 720},
+        {label: '1080p', width: 1920, height: 1080},
     ];
 
     const sizeOptions: SizeOption[] = [
-        { label: 'سایز ۱', width: 15, height: 10, depth: 10 },
-        { label: 'سایز ۲', width: 20, height: 15, depth: 10 },
-        { label: 'سایز ۳', width: 20, height: 20, depth: 15 },
-        { label: 'سایز ۴', width: 30, height: 20, depth: 20 },
-        { label: 'سایز ۵', width: 35, height: 25, depth: 20 },
-        { label: 'سایز ۶', width: 45, height: 25, depth: 20 },
-        { label: 'سایز ۷', width: 40, height: 30, depth: 25 },
-        { label: 'سایز ۸', width: 45, height: 40, depth: 30 },
-        { label: 'سایز ۹', width: 55, height: 45, depth: 35 },
+        {label: 'سایز ۱', width: 15, height: 10, depth: 10},
+        {label: 'سایز ۲', width: 20, height: 15, depth: 10},
+        {label: 'سایز ۳', width: 20, height: 20, depth: 15},
+        {label: 'سایز ۴', width: 30, height: 20, depth: 20},
+        {label: 'سایز ۵', width: 35, height: 25, depth: 20},
+        {label: 'سایز ۶', width: 45, height: 25, depth: 20},
+        {label: 'سایز ۷', width: 40, height: 30, depth: 25},
+        {label: 'سایز ۸', width: 45, height: 40, depth: 30},
+        {label: 'سایز ۹', width: 55, height: 45, depth: 35},
     ];
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setLoading(false)
+        }, 2000);
 
-    // 获取支持的分辨率
+        // cleanup برای جلوگیری از memory leak (اگر کامپوننت unmount بشه)
+        return () => clearTimeout(timeoutId);
+    }, []);
+
     const getSupportedResolutions = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({video: true});
             const track = stream.getVideoTracks()[0];
             const capabilities = await track.getCapabilities();
             stream.getTracks().forEach((track) => track.stop());
@@ -79,7 +92,7 @@ const ObjectTrackingComponent: React.FC = () => {
             };
         } catch (err) {
             console.error('خطا در دریافت وضوح‌های پشتیبانی‌شده:', err);
-            return { width: 640, height: 480 }; // 回退
+            return {width: 640, height: 480}; // 回退
         }
     };
 
@@ -87,7 +100,7 @@ const ObjectTrackingComponent: React.FC = () => {
     useEffect(() => {
         if (step === 2) {
             console.log('تنظیم رزولوشن به خودکار در گام دوم');
-            setResolution({ width: 0, height: 0 });
+            setResolution({width: 0, height: 0});
         }
     }, [step]);
 
@@ -99,7 +112,7 @@ const ObjectTrackingComponent: React.FC = () => {
                 await tf.setBackend('webgpu').catch(() => tf.setBackend('webgl'));
                 console.log(`استفاده از بک‌اند ${tf.getBackend()}`);
                 console.log('بارگذاری مدل COCO-SSD از مسیر محلی...');
-                const loadedModel = await cocoSsd.load({ modelUrl: '/models/ssdlite_mobilenet_v2/model.json' });
+                const loadedModel = await cocoSsd.load({modelUrl: '/models/ssdlite_mobilenet_v2/model.json'});
                 setModel(loadedModel);
                 setError(null);
                 console.log('مدل COCO-SSD با موفقیت از مسیر محلی بارگذاری شد');
@@ -134,15 +147,15 @@ const ObjectTrackingComponent: React.FC = () => {
                     constraints.video = {
                         // @ts-ignore
                         ...constraints.video,
-                        width: { ideal: supportedRes.width },
-                        height: { ideal: supportedRes.height },
+                        width: {ideal: supportedRes.width},
+                        height: {ideal: supportedRes.height},
                     };
                 } else {
                     constraints.video = {
                         // @ts-ignore
                         ...constraints.video,
-                        width: { ideal: resolution.width },
-                        height: { ideal: resolution.height },
+                        width: {ideal: resolution.width},
+                        height: {ideal: resolution.height},
                     };
                 }
 
@@ -228,7 +241,7 @@ const ObjectTrackingComponent: React.FC = () => {
         const offsetY = (canvas.height - scaledHeight) / 2;
 
         ctx.drawImage(video, offsetX, offsetY, scaledWidth, scaledHeight);
-        console.log('ویدئوی خام روی بوم با مقیاس‌بندی رسم شد:', { scale, offsetX, offsetY });
+        console.log('ویدئوی خام روی بوم با مقیاس‌بندی رسم شد:', {scale, offsetX, offsetY});
 
         detectedObjects.forEach((prediction) => {
             const [x, y, width, height] = prediction.bbox;
@@ -247,7 +260,7 @@ const ObjectTrackingComponent: React.FC = () => {
                 scaledX,
                 scaledY > 10 ? scaledY - 5 : 10
             );
-            console.log('شیء شناسایی‌شده رندر شد:', { ...prediction, scaledX, scaledY, scaledWidth, scaledHeight });
+            console.log('شیء شناسایی‌شده رندر شد:', {...prediction, scaledX, scaledY, scaledWidth, scaledHeight});
         });
     };
 
@@ -274,7 +287,7 @@ const ObjectTrackingComponent: React.FC = () => {
             const offsetY = (canvas.height - scaledHeight) / 2;
 
             ctx.drawImage(source, offsetX, offsetY, scaledWidth, scaledHeight);
-            console.log('هیچ شیء شناسایی نشد، رسم تصویر خام با مقیاس‌بندی:', { scale, offsetX, offsetY });
+            console.log('هیچ شیء شناسایی نشد، رسم تصویر خام با مقیاس‌بندی:', {scale, offsetX, offsetY});
             return;
         }
 
@@ -305,7 +318,7 @@ const ObjectTrackingComponent: React.FC = () => {
             scaledBboxX,
             scaledBboxY > 10 ? scaledBboxY - 5 : 10
         );
-        console.log('شیء متمرکز رندر شد:', { ...detectedObjects[0], scaledBboxX, scaledBboxY, scale });
+        console.log('شیء متمرکز رندر شد:', {...detectedObjects[0], scaledBboxX, scaledBboxY, scale});
     };
 
     const detectObjects = useCallback(() => {
@@ -350,7 +363,7 @@ const ObjectTrackingComponent: React.FC = () => {
 
         createImageBitmap(tempCanvas).then((imageBitmap) => {
             console.log('ImageBitmap ایجاد شد، ارسال به worker...');
-            workerRef.current!.postMessage({ imageBitmap }, [imageBitmap]);
+            workerRef.current!.postMessage({imageBitmap}, [imageBitmap]);
             if (useCamera && videoRef.current) {
                 renderDetections(videoRef.current, canvasRef.current!);
             } else if (!useCamera && uploadedImage) {
@@ -364,7 +377,7 @@ const ObjectTrackingComponent: React.FC = () => {
 
     useEffect(() => {
         if (!isDetecting || (useCamera && !videoRef.current)) {
-            console.log('بازه تشخیص متوقف شد:', { isDetecting, hasVideo: !!videoRef.current });
+            console.log('بازه تشخیص متوقف شد:', {isDetecting, hasVideo: !!videoRef.current});
             return;
         }
         console.log('شروع بازه تشخیص...');
@@ -395,20 +408,20 @@ const ObjectTrackingComponent: React.FC = () => {
                             {
                                 label: 'عرض (پیکسل)',
                                 data: collectedData.map((d) => d.bbox[2]),
-                                borderColor: '#4CAF50',
+                                borderColor: '#FFC20E',
                                 fill: false,
                             },
                             {
                                 label: 'ارتفاع (پیکسل)',
                                 data: collectedData.map((d) => d.bbox[3]),
-                                borderColor: '#2196F3',
+                                borderColor: '#073054',
                                 fill: false,
                             },
                         ],
                     },
                     options: {
                         responsive: true,
-                        scales: { y: { beginAtZero: true } },
+                        scales: {y: {beginAtZero: true}},
                     },
                 });
             }
@@ -540,8 +553,8 @@ const ObjectTrackingComponent: React.FC = () => {
     };
 
     const exportData = () => {
-        const data = JSON.stringify({ dimensions, collectedData, selectedSize });
-        const blob = new Blob([data], { type: 'application/json' });
+        const data = JSON.stringify({dimensions, collectedData, selectedSize});
+        const blob = new Blob([data], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -559,7 +572,7 @@ const ObjectTrackingComponent: React.FC = () => {
         setUploadedImage(null);
         setUseCamera(true);
         setStep(1);
-        setResolution({ width: 640, height: 480 });
+        setResolution({width: 640, height: 480});
         setSelectedSize('');
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
@@ -583,21 +596,23 @@ const ObjectTrackingComponent: React.FC = () => {
             case 1:
                 return (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5 }}
-                        className="p-6 bg-blue-50 rounded-lg text-center"
-                        style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
+                        initial={{opacity: 0, scale: 0.8}}
+                        animate={{opacity: 1, scale: 1}}
+                        transition={{duration: 0.5}}
+                        className="p-6 bg-white rounded-lg text-center relative overflow-hidden"
+                        style={{direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif'}}
                     >
                         <h2 className="text-xl font-semibold mb-4">به ردیابی اشیاء خوش آمدید</h2>
-                        <p className="mb-4 text-gray-700">
-                            از دوربین خود یا یک تصویر آپلود شده برای ردیابی اشیاء و اندازه‌گیری ابعاد آنها استفاده کنید. برای اندازه‌گیری دقیق، شیء را از زوایای مختلف اسکن کنید.
+                        <p className="mb-4 text-gray-700 z-10">
+                            از دوربین خود یا یک تصویر آپلود شده برای ردیابی اشیاء و اندازه‌گیری ابعاد آنها استفاده کنید.
+                            برای اندازه‌گیری دقیق، شیء را از زوایای مختلف اسکن کنید.
                         </p>
+                        <Logo className="absolute w-30 opacity-50 -bottom-2 left-1 rotate-[25deg] h-30  "/>
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.95}}
                             onClick={() => setStep(2)}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium"
+                            className="px-6 py-3 bg-[#FFC20E] text-[#073054] rounded-lg font-medium"
                         >
                             شروع ردیابی
                         </motion.button>
@@ -606,11 +621,11 @@ const ObjectTrackingComponent: React.FC = () => {
             case 2:
                 return (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
+                        initial={{opacity: 0, y: 20}}
+                        animate={{opacity: 1, y: 0}}
+                        transition={{duration: 0.5}}
                         className="space-y-4"
-                        style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
+                        style={{direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif'}}
                     >
                         <div className="relative w-full max-w-md aspect-video">
                             {useCamera ? (
@@ -620,38 +635,38 @@ const ObjectTrackingComponent: React.FC = () => {
                                         className="w-full h-full rounded-lg object-contain"
                                         autoPlay
                                         playsInline
-                                        style={{ transform: isBackCamera ? 'scaleX(1)' : 'scaleX(-1)' }}
+                                        style={{transform: isBackCamera ? 'scaleX(1)' : 'scaleX(-1)'}}
                                     />
                                     <canvas
                                         ref={canvasRef}
                                         className="absolute top-0 left-0 w-full h-full"
-                                        style={{ pointerEvents: 'none' }}
+                                        style={{pointerEvents: 'none'}}
                                     />
                                 </>
                             ) : (
                                 <canvas
                                     ref={canvasRef}
                                     className="w-full h-full rounded-lg object-contain"
-                                    style={{ pointerEvents: 'none' }}
+                                    style={{pointerEvents: 'none'}}
                                 />
                             )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center justify-center gap-2">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{scale: 1.05}}
+                                whileTap={{scale: 0.95}}
                                 onClick={() => setUseCamera(true)}
-                                className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${useCamera ? 'bg-blue-600' : 'bg-gray-400'}`}
+                                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[#073054] font-medium ${useCamera ? 'bg-[#FFC20E]' : 'bg-gray-400'}`}
                             >
-                                استفاده از دوربین
+                                <FaCamera/>استفاده از دوربین
                             </motion.button>
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{scale: 1.05}}
+                                whileTap={{scale: 0.95}}
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${!useCamera ? 'bg-blue-600' : 'bg-gray-400'}`}
+                                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[#073054] font-medium ${!useCamera ? 'bg-[#FFC20E]' : 'bg-gray-400'}`}
                             >
-                                آپلود تصویر
+                                <FaUpload/>آپلود تصویر
                             </motion.button>
                             <input
                                 ref={fileInputRef}
@@ -669,7 +684,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                     onChange={(e) =>
                                         setResolution(resolutions.find((r) => r.width === parseInt(e.target.value)) || resolution)
                                     }
-                                    className="mt-1 p-2 border rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 p-2 bg-white rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-[#073054]"
                                 >
                                     {resolutions.map((r) => (
                                         <option key={r.width} value={r.width}>
@@ -684,7 +699,7 @@ const ObjectTrackingComponent: React.FC = () => {
                                     type="number"
                                     value={cameraDistanceCm}
                                     onChange={(e) => setCameraDistanceCm(parseFloat(e.target.value) || 50)}
-                                    className="mt-1 p-2 border rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 p-2 bg-white rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-[#073054]"
                                     min="10"
                                     max="200"
                                 />
@@ -695,68 +710,76 @@ const ObjectTrackingComponent: React.FC = () => {
                                     type="number"
                                     value={detectionInterval}
                                     onChange={(e) => setDetectionInterval(parseInt(e.target.value) || 300)}
-                                    className="mt-1 p-2 border rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 p-2 bg-white rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-[#073054]"
                                     min="100"
                                     max="1000"
                                 />
                             </label>
                         </div>
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.95}}
                             onClick={calibrateDistance}
                             disabled={!detectedObjects.length}
-                            className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#FFC20E] text-[#073054] rounded-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            کالیبراسیون خودکار فاصله
+                            <MdOutlineAutoMode/> کالیبراسیون خودکار فاصله
                         </motion.button>
                         {isCollecting && (
                             <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="p-2 bg-yellow-100 text-yellow-700 rounded text-sm text-center"
+                                initial={{opacity: 0}}
+                                animate={{opacity: 1}}
+                                className="flex items-center justify-center gap-2 p-2 bg-[#FFC20E] text-[#073054] rounded text-sm text-center"
                             >
-                                زوایای جمع‌آوری‌شده: {collectedData.length}
+                                <MdRotate90DegreesCw/>زوایای جمع‌آوری‌شده: {collectedData.length}
                             </motion.div>
                         )}
                         <div className="flex gap-2">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{scale: 1.05}}
+                                whileTap={{scale: 0.95}}
                                 onClick={() => {
                                     setIsDetecting(!isDetecting);
                                     console.log('تغییر وضعیت تشخیص:', !isDetecting);
                                 }}
                                 disabled={!model || (!useCamera && !uploadedImage)}
-                                className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${
-                                    !model || (!useCamera && !uploadedImage) ? 'bg-gray-400 cursor-not-allowed' : isDetecting ? 'bg-yellow-600' : 'bg-blue-600'
+                                className={`flex-1 px-4 py-2 rounded-lg text-[#073054] font-medium ${
+                                    !model || (!useCamera && !uploadedImage) ? 'bg-gray-400 cursor-not-allowed' : isDetecting ? 'bg-[#FFC20E]' : 'bg-[#FFC20E]'
                                 }`}
                             >
-                                {isDetecting ? 'توقف تشخیص' : 'شروع تشخیص'}
+                                {isDetecting ?
+                                    <div className={'flex items-center justify-center gap-2'}><FaPause/>توقف تشخیص
+                                    </div> :
+                                    <div className={'flex items-center justify-center gap-2'}><FaPlay/>
+                                        شروع تشخیص </div>}
                             </motion.button>
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{scale: 1.05}}
+                                whileTap={{scale: 0.95}}
                                 onClick={toggleCollection}
                                 disabled={!isDetecting || !detectedObjects.length}
-                                className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${
-                                    isDetecting && detectedObjects.length ? (isCollecting ? 'bg-orange-600' : 'bg-purple-600') : 'bg-gray-400 cursor-not-allowed'
+                                className={`flex-1 px-4 py-2 rounded-lg text-[#073054] font-medium ${
+                                    isDetecting && detectedObjects.length ? (isCollecting ? 'bg-[#FFC20E]' : 'bg-[#FFC20E]') : 'bg-gray-400 cursor-not-allowed'
                                 }`}
                             >
-                                {isCollecting ? 'توقف جمع‌آوری' : 'شروع جمع‌آوری'}
+                                {isCollecting ?
+                                    <div className={'flex items-center justify-center gap-2'}><FaPause/>توقف جمع‌آوری
+                                    </div> :
+                                    <div className={'flex items-center justify-center gap-2'}><FaPlay/>
+                                        شروع جمع‌آوری</div>}
                             </motion.button>
                             {useCamera && (
                                 <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{scale: 1.05}}
+                                    whileTap={{scale: 0.95}}
                                     onClick={() => setIsBackCamera(!isBackCamera)}
-                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium"
+                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-[#FFC20E] text-[#073054] rounded-lg font-medium"
                                 >
-                                    تغییر دوربین
+                                    <RiCameraSwitchFill className={'w-5 h-5'}/>تغییر دوربین
                                 </motion.button>
                             )}
                         </div>
-                        <canvas ref={chartRef} className="w-full" />
+                        <canvas ref={chartRef} className="w-full"/>
                     </motion.div>
                 );
             case 3:
@@ -765,55 +788,59 @@ const ObjectTrackingComponent: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
-                        className="p-6 bg-green-50 rounded-lg text-center"
+                        className="p-6 bg-white rounded-xl  text-center relative"
                         style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
                     >
-                        <h2 className="text-xl font-semibold mb-4">نتایج اندازه‌گیری</h2>
+
+                        <h2 className="text-2xl font-bold mb-6 text-[#073054]">نتایج اندازه‌گیری</h2>
                         {dimensions && (
-                            <div className="mb-4">
+                            <div className="mb-6 p-4 bg-gray-50 rounded-lg relative overflow-hidden">
+                                <Logo className="absolute w-30 opacity-50 -bottom-2 left-1 rotate-[15deg] h-30  "/>
                                 <p className="text-lg font-medium">
-                                    عرض: <span className="text-green-600">{dimensions.width} cm</span>
+                                    عرض: <span className="text-[#073054] font-semibold">{dimensions.width} cm</span>
                                 </p>
-                                <p className="text-lg font-medium">
-                                    ارتفاع: <span className="text-green-600">{dimensions.height} cm</span>
+                                <p className="text-lg font-medium mt-2">
+                                    ارتفاع: <span className="text-[#073054] font-semibold">{dimensions.height} cm</span>
                                 </p>
-                                <p className="text-lg font-medium">
-                                    عمق: <span className="text-green-600">{dimensions.depth} cm</span>
+                                <p className="text-lg font-medium mt-2">
+                                    عمق: <span className="text-[#073054] font-semibold">{dimensions.depth} cm</span>
                                 </p>
                             </div>
                         )}
-                        <div className="mb-4">
-                            <label className="text-sm font-medium text-gray-700">
+                        <div className="mb-6">
+                            <label className="text-sm font-medium text-gray-700 block mb-2">
                                 انتخاب سایز:
                                 <select
                                     value={selectedSize}
                                     onChange={handleSizeSelection}
-                                    className="mt-1 p-2 border rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 p-3 border rounded-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-[#073054] bg-white text-[#073054]"
                                 >
                                     {sizeOptions.map((size) => (
-                                        <option key={size.label} value={size.label}>
+                                        <option key={size.label} value={size.label} className="text-[#073054]">
                                             {size.label} ({size.width} × {size.height} × {size.depth} cm)
                                         </option>
                                     ))}
                                 </select>
                             </label>
                         </div>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={exportData}
-                            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium mb-4"
-                        >
-                            صادر کردن داده‌ها
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={resetDetection}
-                            className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium"
-                        >
-                            شروع مجدد
-                        </motion.button>
+                        <div className={'flex items-center justify-center gap-2'}>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={exportData}
+                                className="px-6 py-3 bg-[#FFC20E] text-[#073054] rounded-lg font-medium flex items-center justify-center gap-2"
+                            >
+                                <FaDownload /> صادر کردن داده‌ها
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={resetDetection}
+                                className="px-6 py-3 bg-[#073054] text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                            >
+                                <FaUndo /> شروع مجدد
+                            </motion.button>
+                        </div>
                     </motion.div>
                 );
             default:
@@ -822,25 +849,28 @@ const ObjectTrackingComponent: React.FC = () => {
     };
 
     return (
-        <div className="flex justify-center flex-col items-center p-4 bg-gray-100 min-h-screen" style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}>
+        <div className="flex justify-center flex-col items-center p-4 bg-white min-h-screen"
+             style={{direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif'}}>
+            {loading && <Loading/>}
             <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
+                initial={{opacity: 0, y: -20}}
+                animate={{opacity: 1, y: 0}}
+                transition={{duration: 0.5}}
+                className="bg-gray-100 p-6 rounded-lg shadow-lg w-full max-w-md"
             >
                 <h1 className="text-2xl font-bold mb-4 text-center">ردیابی و اندازه‌گیری اشیاء</h1>
                 <AnimatePresence>
                     {error && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
+                            initial={{opacity: 0, y: -10}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -10}}
                             className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm"
                         >
                             {error}
                             {error.includes('مدل') && (
-                                <p>لطفاً بررسی کنید که فایل‌های مدل به‌درستی در پوشه /models/ssdlite_mobilenet_v2 قرار گرفته باشند.</p>
+                                <p>لطفاً بررسی کنید که فایل‌های مدل به‌درستی در پوشه /models/ssdlite_mobilenet_v2 قرار
+                                    گرفته باشند.</p>
                             )}
                             {error.includes('دوربین') && (
                                 <p>مطمئن شوید که دسترسی به دوربین در تنظیمات مرورگر شما فعال است.</p>
