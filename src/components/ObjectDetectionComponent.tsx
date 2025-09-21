@@ -52,7 +52,12 @@ const ObjectTrackingComponent: React.FC = () => {
     const detectionIntervalRef = useRef<number | null>(null);
     const workerRef = useRef<Worker | null>(null);
     const [selectedSize, setSelectedSize] = useState<string>('');
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(true);
+
+    // اضافه کردن state برای returnUrl
+    const [returnUrl, setReturnUrl] = useState<string | null>(null);
+    const [selectedSizeOption, setSelectedSizeOption] = useState<SizeOption | null>(null);
+
     const resolutions = [
         {label: 'خودکار', width: 0, height: 0},
         {label: '480p', width: 640, height: 480},
@@ -71,12 +76,29 @@ const ObjectTrackingComponent: React.FC = () => {
         {label: 'سایز ۸', width: 45, height: 40, depth: 30},
         {label: 'سایز ۹', width: 55, height: 45, depth: 35},
     ];
+
+    // خواندن returnUrl از URL params
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrlParam = urlParams.get('returnUrl');
+
+        if (returnUrlParam) {
+            try {
+                const decodedUrl = decodeURIComponent(returnUrlParam);
+                setReturnUrl(decodedUrl);
+                console.log('Return URL استخراج شد:', decodedUrl);
+            } catch (err) {
+                console.error('خطا در decode کردن returnUrl:', err);
+                setError('خطا در خواندن آدرس بازگشت');
+            }
+        }
+    }, []);
+
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             setLoading(false)
         }, 2000);
 
-        // cleanup برای جلوگیری از memory leak (اگر کامپوننت unmount بشه)
         return () => clearTimeout(timeoutId);
     }, []);
 
@@ -92,11 +114,10 @@ const ObjectTrackingComponent: React.FC = () => {
             };
         } catch (err) {
             console.error('خطا در دریافت وضوح‌های پشتیبانی‌شده:', err);
-            return {width: 640, height: 480}; // 回退
+            return {width: 640, height: 480};
         }
     };
 
-    // در گام دوم، رزولوشن را به صورت خودکار تنظیم کنید
     useEffect(() => {
         if (step === 2) {
             console.log('تنظیم رزولوشن به خودکار در گام دوم');
@@ -104,7 +125,6 @@ const ObjectTrackingComponent: React.FC = () => {
         }
     }, [step]);
 
-    // بارگذاری مدل COCO-SSD
     useEffect(() => {
         const loadModel = async () => {
             try {
@@ -125,7 +145,6 @@ const ObjectTrackingComponent: React.FC = () => {
         loadModel();
     }, []);
 
-    // فعال‌سازی دوربین
     useEffect(() => {
         if (!useCamera) return;
 
@@ -171,7 +190,6 @@ const ObjectTrackingComponent: React.FC = () => {
                     };
                     setError(null);
                 } else {
-                    // setError('المان ویدئو یافت نشد.');
                     console.error('المان ویدئو یافت نشد');
                 }
             } catch (err: unknown) {
@@ -197,7 +215,6 @@ const ObjectTrackingComponent: React.FC = () => {
         };
     }, [isBackCamera, resolution, useCamera]);
 
-    // تنظیم Web Worker
     useEffect(() => {
         console.log('راه‌اندازی Web Worker...');
         workerRef.current = new Worker(new URL('./detectionWorker.js', import.meta.url));
@@ -222,7 +239,6 @@ const ObjectTrackingComponent: React.FC = () => {
         };
     }, [isCollecting]);
 
-    // رندر اشیاء شناسایی‌شده (حالت دوربین)
     const renderDetections = (video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -264,7 +280,6 @@ const ObjectTrackingComponent: React.FC = () => {
         });
     };
 
-    // رندر تصویر آپلود شده و متمرکز کردن
     const trackAndCenterObject = (source: HTMLImageElement, canvas: HTMLCanvasElement) => {
         console.log('رندر تصویر آپلود شده روی بوم با bbox:', detectedObjects[0]?.bbox);
         const ctx = canvas.getContext('2d');
@@ -499,9 +514,8 @@ const ObjectTrackingComponent: React.FC = () => {
             depth: parseFloat(depthVariation.toFixed(2)),
         });
 
-        // پیشنهاد نزدیک‌ترین سایز، فقط بر اساس عرض و ارتفاع
         if (realWidth && realHeight) {
-            const errorMargin = 0.05; // ضریب خطا 5%
+            const errorMargin = 0.05;
             const closestSize = sizeOptions.find((size) => {
                 const widthThreshold = size.width * (1 - errorMargin);
                 const heightThreshold = size.height * (1 - errorMargin);
@@ -517,6 +531,7 @@ const ObjectTrackingComponent: React.FC = () => {
             }, sizeOptions[sizeOptions.length - 1]);
 
             setSelectedSize(closestSize.label);
+            setSelectedSizeOption(closestSize);
             console.log('سایز پیشنهادی:', closestSize);
         }
 
@@ -552,7 +567,41 @@ const ObjectTrackingComponent: React.FC = () => {
         setError(null);
     };
 
+    // تابع exportData بهبود یافته
     const exportData = () => {
+        // اگر returnUrl وجود داره، redirect کن
+        if (returnUrl && dimensions && selectedSizeOption) {
+            try {
+                const redirectUrl = new URL(returnUrl);
+
+                // تنظیم parameters اصلی
+                redirectUrl.searchParams.set('length', selectedSizeOption.width.toString());
+                redirectUrl.searchParams.set('width', selectedSizeOption.height.toString());
+                redirectUrl.searchParams.set('height', selectedSizeOption.depth.toString());
+
+                // اضافه کردن ابعاد محاسبه‌شده
+                if (dimensions) {
+                    redirectUrl.searchParams.set('measuredWidth', dimensions.width.toString());
+                    redirectUrl.searchParams.set('measuredHeight', dimensions.height.toString());
+                    redirectUrl.searchParams.set('measuredDepth', dimensions.depth.toString());
+                }
+
+                // اضافه کردن سایز انتخاب‌شده
+                redirectUrl.searchParams.set('selectedSize', selectedSize);
+
+                console.log('Redirect به:', redirectUrl.toString());
+                console.log('Parameters:', Object.fromEntries(redirectUrl.searchParams));
+
+                // redirect کردن
+                window.location.href = redirectUrl.toString();
+                return;
+            } catch (err) {
+                console.error('خطا در ساخت URL redirect:', err);
+                setError('خطا در بازگشت به آدرس مقصد');
+            }
+        }
+
+        // اگر returnUrl وجود نداره، مثل قبل export JSON کن
         const data = JSON.stringify({dimensions, collectedData, selectedSize});
         const blob = new Blob([data], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
@@ -561,6 +610,8 @@ const ObjectTrackingComponent: React.FC = () => {
         link.download = 'object_data.json';
         link.click();
         URL.revokeObjectURL(url);
+
+        console.log('داده‌ها به صورت JSON دانلود شد');
     };
 
     const resetDetection = () => {
@@ -574,6 +625,7 @@ const ObjectTrackingComponent: React.FC = () => {
         setStep(1);
         setResolution({width: 640, height: 480});
         setSelectedSize('');
+        setSelectedSizeOption(null);
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -588,7 +640,18 @@ const ObjectTrackingComponent: React.FC = () => {
         const selected = e.target.value;
         setSelectedSize(selected);
         const sizeData = sizeOptions.find((size) => size.label === selected);
+        setSelectedSizeOption(sizeData);
         console.log('سایز انتخاب‌شده:', sizeData);
+        console.log('Return URL موجود:', returnUrl);
+
+        // Preview URL در console
+        if (returnUrl && sizeData) {
+            const previewUrl = new URL(returnUrl);
+            previewUrl.searchParams.set('length', sizeData.width.toString());
+            previewUrl.searchParams.set('width', sizeData.height.toString());
+            previewUrl.searchParams.set('height', sizeData.depth.toString());
+            console.log('Preview URL:', previewUrl.toString());
+        }
     };
 
     const renderStep = () => {
@@ -788,25 +851,47 @@ const ObjectTrackingComponent: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
-                        className="p-6 bg-white rounded-xl  text-center relative"
+                        className="p-6 bg-white rounded-xl text-center relative"
                         style={{ direction: 'rtl', fontFamily: 'Vazirmatn, sans-serif' }}
                     >
-
                         <h2 className="text-2xl font-bold mb-6 text-[#073054]">نتایج اندازه‌گیری</h2>
-                        {dimensions && (
-                            <div className="mb-6 p-4 bg-gray-50 rounded-lg relative overflow-hidden">
-                                <Logo className="absolute w-30 opacity-50 -bottom-2 left-1 rotate-[15deg] h-30  "/>
-                                <p className="text-lg font-medium">
-                                    عرض: <span className="text-[#073054] font-semibold">{dimensions.width} cm</span>
-                                </p>
-                                <p className="text-lg font-medium mt-2">
-                                    ارتفاع: <span className="text-[#073054] font-semibold">{dimensions.height} cm</span>
-                                </p>
-                                <p className="text-lg font-medium mt-2">
-                                    عمق: <span className="text-[#073054] font-semibold">{dimensions.depth} cm</span>
-                                </p>
-                            </div>
+
+                        {/* نمایش returnUrl برای debug */}
+                        {returnUrl && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm"
+                            >
+                                <div className="font-medium mb-1">آدرس بازگشت:</div>
+                                <div className="text-xs break-all opacity-80">{returnUrl}</div>
+                            </motion.div>
                         )}
+
+                        {dimensions && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-6 p-4 bg-gray-50 rounded-lg relative overflow-hidden border border-gray-200"
+                            >
+                                <Logo className="absolute w-30 opacity-50 -bottom-2 left-1 rotate-[15deg] h-30  "/>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <p className="text-sm text-gray-600">عرض</p>
+                                        <p className="text-lg font-semibold text-[#073054]">{dimensions.width} cm</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">ارتفاع</p>
+                                        <p className="text-lg font-semibold text-[#073054]">{dimensions.height} cm</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">عمق</p>
+                                        <p className="text-lg font-semibold text-[#073054]">{dimensions.depth} cm</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
                         <div className="mb-6">
                             <label className="text-sm font-medium text-gray-700 block mb-2">
                                 انتخاب سایز:
@@ -814,7 +899,11 @@ const ObjectTrackingComponent: React.FC = () => {
                                     value={selectedSize}
                                     onChange={handleSizeSelection}
                                     className="mt-1 p-3 border rounded-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-[#073054] bg-white text-[#073054]"
+                                    disabled={!dimensions}
                                 >
+                                    {!dimensions && (
+                                        <option value="">لطفاً ابتدا اندازه‌گیری کنید</option>
+                                    )}
                                     {sizeOptions.map((size) => (
                                         <option key={size.label} value={size.label} className="text-[#073054]">
                                             {size.label} ({size.width} × {size.height} × {size.depth} cm)
@@ -823,24 +912,70 @@ const ObjectTrackingComponent: React.FC = () => {
                                 </select>
                             </label>
                         </div>
-                        <div className={'flex items-center justify-center gap-2'}>
+
+                        {/* Preview URL برای debug */}
+                        {returnUrl && dimensions && selectedSizeOption && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm"
+                            >
+                                <div className="font-medium mb-1">پیش‌نمایش آدرس مقصد:</div>
+                                <div className="text-xs break-all">
+                                    <code className="bg-green-100 px-1 py-0.5 rounded">
+                                        {returnUrl}
+                                        ?length={selectedSizeOption.width}
+                                        &width={selectedSizeOption.height}
+                                        &height={selectedSizeOption.depth}
+                                        {dimensions && (
+                                            <>
+                                                &measuredWidth={dimensions.width}
+                                                &measuredHeight={dimensions.height}
+                                                &measuredDepth={dimensions.depth}
+                                            </>
+                                        )}
+                                        &selectedSize={encodeURIComponent(selectedSize)}
+                                    </code>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        <div className={'flex items-center justify-center gap-2 flex-col sm:flex-row'}>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={exportData}
-                                className="px-6 py-3 bg-[#FFC20E] text-[#073054] rounded-lg font-medium flex items-center justify-center gap-2"
+                                disabled={!dimensions || !selectedSize}
+                                className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                                    dimensions && selectedSize
+                                        ? 'bg-[#FFC20E] text-[#073054] hover:bg-[#e6b100]'
+                                        : 'bg-gray-400 text-gray-500 cursor-not-allowed'
+                                }`}
                             >
-                                <FaDownload /> صادر کردن داده‌ها
+                                <FaDownload />
+                                {returnUrl ? 'بازگشت به بسته‌بندی' : 'صادر کردن داده‌ها'}
                             </motion.button>
+
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={resetDetection}
-                                className="px-6 py-3 bg-[#073054] text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3 bg-[#073054] text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[#052548]"
                             >
                                 <FaUndo /> شروع مجدد
                             </motion.button>
                         </div>
+
+                        {/* نمایش وضعیت redirect */}
+                        {returnUrl && dimensions && selectedSize && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="mt-4 p-2 bg-blue-50 text-blue-700 rounded text-xs text-center"
+                            >
+                                ✅ بعد از کلیک روی دکمه، به آدرس بسته‌بندی با ابعاد محاسبه‌شده برمی‌گردید
+                            </motion.div>
+                        )}
                     </motion.div>
                 );
             default:
