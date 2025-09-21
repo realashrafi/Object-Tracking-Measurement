@@ -6,10 +6,18 @@ self.onmessage = async (e) => {
         importScripts('/tf.min.js');
         importScripts('/coco-ssd.min.js');
         console.log('Worker: Scripts loaded');
-        console.log('Worker: Loading model...');
-        const model = await cocoSsd.load({ modelUrl: '/models/ssdlite_mobilenet_v2/model.json' });
+
+        // ✅ Dynamic HTTPS URL
+        const origin = self.location.origin || 'https://size.zboom.ir'; // fallback
+        const modelUrl = `${origin}/models/ssdlite_mobilenet_v2/model.json`;
+
+        console.log('Worker: Loading model from:', modelUrl);
+        console.log('Worker: Current origin:', origin);
+
+        const model = await cocoSsd.load({ modelUrl });
         console.log('Worker: Model loaded successfully');
 
+        // بقیه کد...
         console.log('Worker: Creating OffscreenCanvas...');
         const offscreenCanvas = new OffscreenCanvas(e.data.imageBitmap.width, e.data.imageBitmap.height);
         const ctx = offscreenCanvas.getContext('2d');
@@ -23,6 +31,7 @@ self.onmessage = async (e) => {
         const predictions = await model.detect(imageData);
         console.log('Worker: Predictions:', predictions);
         self.postMessage({ predictions });
+
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error('Worker error:', errorMessage);
