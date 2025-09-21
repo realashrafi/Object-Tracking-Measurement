@@ -6,7 +6,7 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/*" element={<ObjectDetectionComponent />} />
+                <Route path="/" element={<ObjectDetectionComponent />} />
             </Routes>
         </Router>
     );
